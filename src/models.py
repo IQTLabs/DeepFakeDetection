@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision
 
 __all__ = ['ConvLSTM']
@@ -96,5 +97,10 @@ class ConvLSTM(nn.Module):
         x = self.encoder(x)
         x = x.view(batch_size, seq_length, -1)
         x = self.lstm(x)
-        x = x[:, -1]
+        if self.attention:
+            attention_w = F.softmax(
+                self.attention_layer(x).squeeze(-1), dim=-1)
+            x = torch.sum(attention_w.unsqueeze(-1) * x, dim=1)
+        else:
+            x = x[:, -1]
         return self.output_layers(x)
