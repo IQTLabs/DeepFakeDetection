@@ -17,7 +17,7 @@ class DFDC_Dataset(Dataset):
     """ DeepFake detection dataset
     """
 
-    def __init__(self, df=None, transform=None, frames=30):
+    def __init__(self, df=None, transform=None, path='', frames=30):
         """ Dataset initialization
         Parameters
         ----------
@@ -25,13 +25,15 @@ class DFDC_Dataset(Dataset):
             Dataframe with preprocessed data
         transform : torchvision.transforms
             Transformation operations for loaded images
+        path : str
+            Path to folder with the data
         frames : int
             Frames to load per video
         """
         assert df is not None, 'Missing dataframe for data'
         self.frames = frames
         self.df = df[df['frames'] >= frames]
-        self.path = '/home/mlomnitz/Documents/Data/deepfake-detection/dfdc_train_subset_faces'
+        self.path = path
         if transform is None:
             self.transform = transforms.ToTensor()
         else:
