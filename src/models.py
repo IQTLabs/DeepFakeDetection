@@ -40,10 +40,31 @@ class LSTM(nn.Module):
 
 
 class ConvLSTM(nn.Module):
+    """ Convolitional LSTM model for video predictions
+    """
+
     def __init__(
         self, num_classes, latent_dim=512, lstm_layers=1, hidden_dim=1024,
             bidirectional=True, attention=True
     ):
+        """ Inintialization
+        Parameters
+        ----------
+        num_classes : int
+            Number of output classes
+        latent_dim : int
+            Latent dimension for embeddings fed into LSTMs
+        lstm_layers : int
+            Number of lstm layers to use in model
+        hidden_dim : int
+            Hidden kayer dimension in final prediction block
+        bidirectional : bool
+            Bi/Unidrectional switch
+        attention : bool
+            Attention block switch
+        Returns
+        -------
+        """
         super(ConvLSTM, self).__init__()
         self.encoder = Encoder(latent_dim)
         self.lstm = LSTM(latent_dim, lstm_layers, hidden_dim, bidirectional)
@@ -60,6 +81,16 @@ class ConvLSTM(nn.Module):
             2 * hidden_dim if bidirectional else hidden_dim, 1)
 
     def forward(self, x):
+        """ Forward pass
+        Parameters
+        ----------
+        x : torch.tensor
+            Tensor with video frames, expected size (bs, n_frames, c, h, w)
+        Returns
+        -------
+        x : torch.tensor
+            Processed torch data
+        """
         batch_size, seq_length, c, h, w = x.shape
         x = x.view(batch_size * seq_length, c, h, w)
         x = self.encoder(x)
