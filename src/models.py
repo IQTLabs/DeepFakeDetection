@@ -1,3 +1,4 @@
+# Bsed on the work in https://github.com/eriklindernoren/Action-Recognition
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,6 +26,20 @@ class Encoder(nn.Module):
         return self.fc(x)
 
 
+class ResNetEncoder(nn.Module):
+    def __init__(self, latent_dim):
+        super(ResNetEncoder, self).__init__()
+        model = torchvision.models.resnet152(pretrained=True)
+        self.features = nn.Sequential(*list(model.children())[:-1])
+        self.fc = nn.Linear(2048, latent_dim)
+
+    def forward(self, x):
+        with torch.no_grad():
+            x = self.features(x)
+        x = x.view(x.shape[0], -1)
+        return self.fc(x)
+
+
 class LSTM(nn.Module):
     def __init__(self, latent_dim, num_layers, hidden_dim, bidirectional):
         super(LSTM, self).__init__()
@@ -46,7 +61,7 @@ class ConvLSTM(nn.Module):
 
     def __init__(
         self, num_classes, latent_dim=512, lstm_layers=1, hidden_dim=1024,
-            bidirectional=True, attention=True
+            bidirectional=True, attention=True, encoder='VGG'
     ):
         """ Inintialization
         Parameters
@@ -63,11 +78,18 @@ class ConvLSTM(nn.Module):
             Bi/Unidrectional switch
         attention : bool
             Attention block switch
+        encoder : str
+            Encoder architecture
         Returns
         -------
         """
         super(ConvLSTM, self).__init__()
-        self.encoder = Encoder(latent_dim)
+        implemented_encoders = ['VGG', 'ResNet']
+        assert encoder in implemented_encoders, 'Selected encoder is missing'
+        if encoder == 'VGG':
+            self.encoder = Encoder(latent_dim)
+        if encoder == 'ResNet':
+            self.encoder = ResNetEncoder(latent_dim)
         self.lstm = LSTM(latent_dim, lstm_layers, hidden_dim, bidirectional)
         self.output_layers = nn.Sequential(
             nn.Linear(
