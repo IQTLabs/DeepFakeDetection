@@ -57,7 +57,7 @@ class DFDC_Dataset(Dataset):
         Returns
         -------
         frames : torch.tensor
-            Torch tensor with video frames size (1, n_frames, h, w, 3)
+            Torch tensor with video frames size (1, n_frames, 3, h, w)
         lbls : torch.tensor
             Tensor with video lables (1=real, 0=fake)
         """
