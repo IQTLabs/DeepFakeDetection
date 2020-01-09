@@ -1,6 +1,8 @@
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+__all__ = ['CreateOptim']
+
 
 def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), factor=0.2,
                 patience=5, threshold=1e-03,  eps=1e-08):
