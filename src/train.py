@@ -3,7 +3,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 
-__all__ = ['train']
+__all__ = ['train_dfd', 'test_dfd']
 
 
 class AverageMeter(object):
@@ -49,7 +49,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def test(dataloader, model):
+def test_dfd(dataloader, model):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     pbar = tqdm(total=len(dataloader))
     model.to(device)
@@ -70,9 +70,9 @@ def test(dataloader, model):
     return 100.*correct/total
 
 
-def train(model=None, dataloader=None, optim=None,
-          scheduler=None, criterion=nn.CrossEntropyLoss(), losses=[],
-          averages=[], n_epochs=0, verbose=False):
+def train_dfd(model=None, dataloader=None, optim=None,
+              scheduler=None, criterion=nn.CrossEntropyLoss(), losses=[],
+              averages=[], n_epochs=0, verbose=False):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
