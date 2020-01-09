@@ -34,6 +34,27 @@ parser.add_argument('--debug', dest='debug', default=False,
 
 def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
                   debug=False):
+    """ Preprocessing script for deep fake challenge.  Subsamples, videos,
+    isolates faces and saves frames.
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe with video metadata
+    mtcnn : torch.Module
+        Facial detection module from facenet-python (https://github.com/timesler/facenet-pytorch)
+    path : str
+        Path to directory with DFDC data
+    outpath : str
+        Destination for preprocessed frames
+    n_seconds : int 
+        Number fo seconds to load
+    debug : bool
+        Debug switch to test memory leak
+    Returns
+    -------
+    faces_dataframe : pd.DataFrame
+        Dataframe of preprocessed data
+    """
     to_pil = transforms.ToPILImage()
     pbar = tqdm(total=len(df))
     faces_dataframe = []
