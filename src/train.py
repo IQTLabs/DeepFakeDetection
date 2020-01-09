@@ -142,3 +142,4 @@ def train_dfd(model=None, dataloader=None, optim=None,
             scheduler.step(meter.avg)
             averages.append(meter.avg)
             meter.reset()
+    pbar.close()

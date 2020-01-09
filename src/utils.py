@@ -1,7 +1,8 @@
+import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-__all__ = ['CreateOptim']
+__all__ = ['CreateOptim', 'save_checkpoint']
 
 
 def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), factor=0.2,
@@ -31,3 +32,25 @@ def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), factor=0.2,
         optimizer, mode='min', factor=0.2, patience=patience,
         threshold=threshold, eps=eps, verbose=True)
     return optimizer, scheduler
+
+
+def save_checkpoint(model, description, filename='checkpoint.pth.tar'):
+    """ Saves input state dict to file
+    Parameters
+    ----------
+    state : dict
+        State dict to save. Can include parameters from model, optimizer, etc.
+        as well as any other elements.
+    is_best : bool
+        If true will save current state dict to a second location
+    filename : str
+        File name for save
+    Returns
+    -------
+    """
+    state = {
+        'architecture': str(model),
+        'description': description,
+        'model': model.state_dict()
+    }
+    torch.save(state, filename)
