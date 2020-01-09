@@ -14,7 +14,20 @@ def fix_labels(df=None):
 
 
 class DFDC_Dataset(Dataset):
+    """ DeepFake detection dataset
+    """
+
     def __init__(self, df=None, transform=None, frames=30):
+        """ Dataset initialization
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Dataframe with preprocessed data
+        transform : torchvision.transforms
+            Transformation operations for loaded images
+        frames : int
+            Frames to load per video
+        """
         assert df is not None, 'Missing dataframe for data'
         self.frames = frames
         self.df = df[df['frames'] >= frames]
@@ -25,9 +38,29 @@ class DFDC_Dataset(Dataset):
             self.transform = transform
 
     def __len__(self):
+        """ Len of dataset
+        Parameters
+        ----------
+        Returns
+        -------
+        length : int
+            Dataset length
+        """
         return len(self.df)
 
     def __getitem__(self, idx):
+        """ Return dataset item
+        Parameters
+        ----------
+        idx : int
+            Item to retrieve
+        Returns
+        -------
+        frames : torch.tensor
+            Torch tensor with video frames size (1, n_frames, h, w, 3)
+        lbls : torch.tensor
+            Tensor with video lables (1=real, 0=fake)
+        """
         entry = self.df.iloc[idx]
         dest = '{}/{}/{}/'.format(self.path, entry['split'], entry['File'])
         path, dirs, files = next(os.walk(dest))
