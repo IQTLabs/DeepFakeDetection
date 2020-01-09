@@ -50,6 +50,18 @@ class AverageMeter(object):
 
 
 def test_dfd(dataloader, model):
+    """ Test deep fake detector
+    Parameters
+    ----------
+    dataloader : torch.utils.data.DataLoader
+        Dataloader used for evaluation
+    model : torch.Module
+        Pytorch module to evaluate
+    Returns
+    -------
+    accuracy : float
+        Model accuracy over evaluation set
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     pbar = tqdm(total=len(dataloader))
     model.to(device)
@@ -73,7 +85,28 @@ def test_dfd(dataloader, model):
 def train_dfd(model=None, dataloader=None, optim=None,
               scheduler=None, criterion=nn.CrossEntropyLoss(), losses=[],
               averages=[], n_epochs=0, verbose=False):
-
+    """ Training routing for deep fake detector
+    Parameters
+    ----------
+    model : torch.Module
+        Deep fake detector model
+    dataloader : torch.utils.data.DataLoader
+        Training dataset
+    optim : torch.optim
+        Optimizer for pytorch model
+    scheduler : torch.optim.lr_scheduler
+        Optional learning rate scheduler for the optimizer
+    criterion : torch.nn.Module
+        Objective function for optimization
+    losses : list
+        List to hold the lossses over each mini-batch
+    averages : list
+        List to hold the average loss over each epoch
+    n_epochs : int
+        Number of epochs for training
+    verbose : bool
+        Verbose switch to print losses at each mini-batch
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     meter = AverageMeter()
