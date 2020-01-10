@@ -126,4 +126,5 @@ class ConvLSTM(nn.Module):
             x = torch.sum(attention_w.unsqueeze(-1) * x, dim=1)
         else:
             x = x[:, -1]
-        return self.output_layers(x)
+        x = self.output_layers(x)
+        return x.view(x.shape[0])
