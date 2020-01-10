@@ -67,12 +67,12 @@ def test_dfd(dataloader, model, criterion, device):
         Model accuracy over evaluation set
     """
     device = torch.device(device)
-    pbar = tqdm(total=len(dataloader))
     model.to(device)
     model.eval()
     correct = 0
     loss = 0
     total = 0
+    print('------------ Validating performance')
     for idx, batch in enumerate(dataloader):
         frames, lbls = batch
         frames, lbls = frames.to(device), lbls.float().to(device)
@@ -84,8 +84,6 @@ def test_dfd(dataloader, model, criterion, device):
         total += frames.shape[0]
         loss += (lbls.shape[0]) * \
             (criterion(predictions, lbls).detach().cpu().item())
-        pbar.update(1)
-    pbar.close()
     return 100.*correct/total, loss/total
 
 
@@ -146,7 +144,7 @@ def train_dfd(model=None, dataloader=None, testloader=None, optim=None,
                 pbar.update(1)
         acc, v_loss = test_dfd(dataloader=testloader, model=model,
                                criterion=criterion, device='cuda:1')
-        print('{} Train average:{:.4f} \n Test average{:.4f} average {:.4f}'.format(
+        print('Epoch {} \n Train loss:{:.4f} \n Test accuracy:{:.4f} loss:{:.4f}'.format(
             epoch, meter.avg, acc, v_loss))
         if verbose is False:
             pbar.reset(0)
