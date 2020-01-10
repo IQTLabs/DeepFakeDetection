@@ -97,7 +97,8 @@ class ConvLSTM(nn.Module):
             nn.BatchNorm1d(hidden_dim, momentum=0.01),
             nn.ReLU(),
             nn.Linear(hidden_dim, num_classes),
-            nn.Softmax(dim=-1),
+            # nn.Softmax(dim=-1),
+            nn.Sigmoid()
         )
         self.attention = attention
         self.attention_layer = nn.Linear(
