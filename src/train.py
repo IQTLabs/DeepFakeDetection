@@ -49,7 +49,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def test_dfd(dataloader, model):
+def test_dfd(dataloader, model, device):
     """ Test deep fake detector
     Parameters
     ----------
@@ -57,12 +57,14 @@ def test_dfd(dataloader, model):
         Dataloader used for evaluation
     model : torch.Module
         Pytorch module to evaluate
+    device : str
+        Device to run eval
     Returns
     -------
     accuracy : float
         Model accuracy over evaluation set
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(device)
     pbar = tqdm(total=len(dataloader))
     model.to(device)
     model.eval()
@@ -84,7 +86,7 @@ def test_dfd(dataloader, model):
 
 def train_dfd(model=None, dataloader=None, optim=None,
               scheduler=None, criterion=nn.CrossEntropyLoss(), losses=[],
-              averages=[], n_epochs=0, verbose=False):
+              averages=[], n_epochs=0, device='cpu', verbose=False):
     """ Training routing for deep fake detector
     Parameters
     ----------
@@ -104,10 +106,12 @@ def train_dfd(model=None, dataloader=None, optim=None,
         List to hold the average loss over each epoch
     n_epochs : int
         Number of epochs for training
+    device : str
+        Device to run training procedure
     verbose : bool
         Verbose switch to print losses at each mini-batch
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(device)
     model = model.to(device)
     meter = AverageMeter()
     if verbose is False:
@@ -115,7 +119,7 @@ def train_dfd(model=None, dataloader=None, optim=None,
     for epoch in range(n_epochs):
         for i_batch, batch in enumerate(dataloader):
             frames, lbls = batch
-            frames, lbls = frames.to(device), lbls.to(device)
+            frames, lbls = frames.to(device), lbls.float().to(device)
             model.train()
             optim.zero_grad()
             model.lstm.reset_hidden_state()
@@ -123,7 +127,7 @@ def train_dfd(model=None, dataloader=None, optim=None,
             predictions = model(frames)
             # print(predictions.shape)
             #print(predictions, lbls)
-            loss = criterion(predictions, lbls)
+            loss = criterion(predictions.view(predictions.shape[0]), lbls)
             loss.backward()
             optim.step()
             losses.append(loss.item())
