@@ -106,8 +106,8 @@ if __name__ == '__main__':
     assert args.df is not None, 'Need to specify metadata file'
     with open(args.config) as f:
         config = yaml.load(f)
-    # device = torch.device('cuda:{}'.format(args.gpu))
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cuda:{}'.format(args.gpu))
+    #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     df = pd.read_csv(args.df)
     path = config['data_path']
     mt = config['mtcnn']
