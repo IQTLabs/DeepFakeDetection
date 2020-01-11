@@ -34,7 +34,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config) as f:
         config = yaml.load(f)
-    device = torch.device('cuda:{}'.format(args.gpu))
     df = pd.read_csv('{}/faces_metadata.csv'.format(config['data_path']))
     train, test = train_test_split(df, config['training_fraction'])
     #
