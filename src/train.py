@@ -143,7 +143,7 @@ def train_dfd(model=None, dataloader=None, testloader=None, optim=None,
             else:
                 pbar.update(1)
         acc, v_loss = test_dfd(dataloader=testloader, model=model,
-                               criterion=criterion, device='cuda:1')
+                               criterion=criterion, device=device)
         print('Epoch {} \n Train loss:{:.4f} \n Test accuracy:{:.4f} loss:{:.4f}'.format(
             epoch, meter.avg, acc, v_loss))
         if verbose is False:
