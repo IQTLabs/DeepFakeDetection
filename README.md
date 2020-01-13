@@ -10,6 +10,15 @@ source venv/bin/activate
 python setup.py install
 ```
 
+or 
+
+```
+virtualenv -p /usr/local/bin/python3 venv
+source venv/bin/activate
+pip install -e .
+```
+
+
 ## Preprocessing
 
 ```
