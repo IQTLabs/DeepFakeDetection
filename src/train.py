@@ -49,7 +49,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def test_dfd(dataloader, model, device):
+def test_dfd(dataloader, model, criterion, device):
     """ Test deep fake detector
     Parameters
     ----------
@@ -57,6 +57,8 @@ def test_dfd(dataloader, model, device):
         Dataloader used for evaluation
     model : torch.Module
         Pytorch module to evaluate
+    crriterion : torch.nn.Module
+        Objective function used in training
     device : str
         Device to run eval
     Returns
@@ -65,26 +67,27 @@ def test_dfd(dataloader, model, device):
         Model accuracy over evaluation set
     """
     device = torch.device(device)
-    pbar = tqdm(total=len(dataloader))
     model.to(device)
     model.eval()
     correct = 0
+    loss = 0
     total = 0
+    print('------------ Validating performance')
     for idx, batch in enumerate(dataloader):
         frames, lbls = batch
-        frames, lbls = frames.to(device), lbls.to(device)
+        frames, lbls = frames.to(device), lbls.float().to(device)
         with torch.no_grad():
             model.lstm.reset_hidden_state()
             predictions = model(frames)
-        correct = (predictions.detach().argmax(
-            dim=1) == lbls).sum().cpu().numpy()
+            correct = (torch.round(predictions).detach()
+                       == lbls).sum().cpu().numpy()
         total += frames.shape[0]
-        pbar.update(1)
-    pbar.close()
-    return 100.*correct/total
+        loss += (lbls.shape[0]) * \
+            (criterion(predictions, lbls).detach().cpu().item())
+    return 100.*correct/total, loss/total
 
 
-def train_dfd(model=None, dataloader=None, optim=None,
+def train_dfd(model=None, dataloader=None, testloader=None, optim=None,
               scheduler=None, criterion=nn.CrossEntropyLoss(), losses=[],
               averages=[], n_epochs=0, device='cpu', verbose=False):
     """ Training routing for deep fake detector
@@ -126,8 +129,8 @@ def train_dfd(model=None, dataloader=None, optim=None,
             # Establish shared key
             predictions = model(frames)
             # print(predictions.shape)
-            #print(predictions, lbls)
-            loss = criterion(predictions.view(predictions.shape[0]), lbls)
+            # print(predictions, lbls)
+            loss = criterion(predictions, lbls)
             loss.backward()
             optim.step()
             losses.append(loss.item())
@@ -139,7 +142,10 @@ def train_dfd(model=None, dataloader=None, optim=None,
                                                           loss.item()))
             else:
                 pbar.update(1)
-        print('{} Average:{:.4f} '.format(epoch, meter.avg))
+        acc, v_loss = test_dfd(dataloader=testloader, model=model,
+                               criterion=criterion, device=device)
+        print('Epoch {} \n Train loss:{:.4f} \n Test accuracy:{:.4f} loss:{:.4f}'.format(
+            epoch, meter.avg, acc, v_loss))
         if verbose is False:
             pbar.reset(0)
         if scheduler is not None:
