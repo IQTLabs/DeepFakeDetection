@@ -66,7 +66,7 @@ def save_checkpoint(model, description, filename='checkpoint.pth.tar'):
 
 
 def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
-                  debug=False):
+                  frame_rate=10, debug=False):
     """ Preprocessing script for deep fake challenge.  Subsamples, videos,
     isolates faces and saves frames.
     Parameters
@@ -81,6 +81,8 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
         Destination for preprocessed frames
     n_seconds : int 
         Number fo seconds to load
+    frame_rate : int
+        Number of frames per second to process
     debug : bool
         Debug switch to test memory leak
     Returns
@@ -88,6 +90,25 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
     faces_dataframe : pd.DataFrame
         Dataframe of preprocessed data
     """
+    def split(my_list, n):
+        final = [my_list[i * n:(i + 1) * n]
+                 for i in range((len(my_list) + n - 1) // n)]
+        return final
+
+    def process_min_batch(batch=None, batch_start=0):
+        faces = mtcnn(batch)
+        saved_frames = 0
+        for ii, face in enumerate(faces):
+            if face is None:
+                continue
+            imface = to_pil(face/2 + 0.5)
+            imface.save('{}/frame_{}.jpeg'.format(dest, ii+n_frames))
+            del imface
+            saved_frames += 1
+        del faces
+        return saved_frames
+
+    frame_skip = 30//frame_rate
     to_pil = transforms.ToPILImage()
     pbar = tqdm(total=len(df))
     faces_dataframe = []
@@ -105,24 +126,18 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
         # Temporary fix for large files, need to build propoer solution
         if h*w > (1080*1920):
             continue
-        frames = [to_pil(x) for x in videodata[0::n_seconds]]
-        faces = mtcnn(frames)
+        frames = [to_pil(x) for x in videodata[0::frame_skip]]
+        frames_batches = split(frames, 30)
         n_frames = 0
-        for ii, face in enumerate(faces):
-            if n_frames == 30:
+        for idx, batch in enumerate(frames_batches):
+            if n_frames > 30:
                 break
-            if face is None:
-                continue
-            imface = to_pil(face/2 + 0.5)
-            imface.save('{}/frame_{}.jpeg'.format(dest, ii))
-            del imface
-            n_frames += 1
+            n_frames += process_min_batch(batch, 30*idx)
+
         this_entry = {'split': entry['split'], 'File': entry['File'],
                       'label': entry['label'], 'frames': n_frames}
         faces_dataframe.append(this_entry)
-        del faces, frames, videodata, entry, this_entry
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        del frames, videodata, entry, this_entry
         if debug:
             for obj in gc.get_objects():
                 try:
