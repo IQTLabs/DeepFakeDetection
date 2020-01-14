@@ -1,3 +1,7 @@
+# __init__.py
+
+from .__version__ import __version__
+
 from .models import *
 from .dataset import *
 from .train import *
