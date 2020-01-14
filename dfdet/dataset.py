@@ -74,7 +74,7 @@ class DFDC_Dataset(Dataset):
                 frames.append(self.transform(Image.open(f)))
             nframe += 1
             if nframe > 1000:
-                print('Something terrible')
+                print('Something terrible ', dest)
                 break
 
         return torch.stack(frames), entry['label']
