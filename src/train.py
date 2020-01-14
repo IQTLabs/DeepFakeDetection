@@ -3,6 +3,8 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 
+from .utils import save_checkpoint
+
 __all__ = ['train_dfd', 'test_dfd']
 
 
@@ -117,6 +119,7 @@ def train_dfd(model=None, dataloader=None, testloader=None, optim=None,
     device = torch.device(device)
     model = model.to(device)
     meter = AverageMeter()
+    best_loss = 999
     if verbose is False:
         pbar = tqdm(total=len(dataloader))
     for epoch in range(n_epochs):
@@ -144,6 +147,10 @@ def train_dfd(model=None, dataloader=None, testloader=None, optim=None,
                 pbar.update(1)
         acc, v_loss = test_dfd(dataloader=testloader, model=model,
                                criterion=criterion, device=device)
+        if v_loss < best_loss:
+            best_loss = v_loss
+            save_checkpoint(model, 'best model loss: {}'.format(v_loss),
+                            './checkpoints/best_model.pth.tar')
         print('Epoch {} \n Train loss:{:.4f} \n Test accuracy:{:.4f} loss:{:.4f}'.format(
             epoch, meter.avg, acc, v_loss))
         if verbose is False:
