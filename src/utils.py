@@ -100,7 +100,7 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
         try:
             videodata = skvideo.io.vread(filename, num_frames=(n_seconds+1)*30)
         except:
-            continue
+            videodata = skvideo.io.vread(filename)
         f, h, w, c = videodata.shape
         # Temporary fix for large files, need to build propoer solution
         if h*w > (1080*1920):
@@ -118,7 +118,7 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
             del imface
             n_frames += 1
         this_entry = {'split': entry['split'], 'File': entry['File'],
-                      'label': entry['label'], 'frames': len(faces)}
+                      'label': entry['label'], 'frames': n_frames}
         faces_dataframe.append(this_entry)
         del faces, frames, videodata, entry, this_entry
         if torch.cuda.is_available():
