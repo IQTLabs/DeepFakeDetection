@@ -67,7 +67,7 @@ def save_checkpoint(model, description, filename='checkpoint.pth.tar'):
 
 def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
                   target_n_frames=60, frame_rate=10, mini_batch=15,
-                  debug=False):
+                  n_seconds=5, debug=False):
     """ Preprocessing script for deep fake challenge.  Subsamples, videos,
     isolates faces and saves frames.
     Parameters
@@ -86,6 +86,8 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
         Number of frames per second to process
     mini_batch : str
         Mini batch size for preprocessing steps (protects against memory overflow)
+    n_seconds : int
+        Numbr of seconds to load video (speed up optimization)
     debug : bool
         Debug switch to test memory leak
     Returns
@@ -146,6 +148,8 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
         dest = '{}/{}/{}/'.format(outpath, entry['split'], entry['File'])
         Path(dest).mkdir(parents=True, exist_ok=True)
         try:
+            videodata = skvideo.io.vread(filename, (n_seconds)*30)
+        except RuntimeError:
             videodata = skvideo.io.vread(filename)
         except:
             this_entry = {'split': entry['split'], 'File': entry['File'],

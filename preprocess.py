@@ -42,5 +42,6 @@ if __name__ == '__main__':
                                     target_n_frames=config['n_frames'],
                                     frame_rate=config['frame_rate'],
                                     mini_batch=config['mini_batch'],
+                                    n_seconds=config['n_seconds'],
                                     debug=args.debug)
     faces_dataframe.to_csv('{}/faces_metadata.csv'.format(config['out_path']))
