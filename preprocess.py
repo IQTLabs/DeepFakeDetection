@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from facenet_pytorch import MTCNN
-from src import preprocess_df
+from dfdet import preprocess_df
 
 parser = parser = argparse.ArgumentParser(description='Batch inference script')
 
@@ -16,8 +16,6 @@ parser.add_argument('--config', dest='config',
                     help='Config file with paths and MTCNN set-up')
 parser.add_argument('--df', dest='df', default=None,
                     type=str, help='Dataframe location')
-parser.add_argument('--seconds', dest='seconds', default=30,
-                    type=int, help='Number of seconds to sample from')
 parser.add_argument('--debug', dest='debug', default=False,
                     type=bool, help='Debug mode switch')
 
@@ -41,5 +39,8 @@ if __name__ == '__main__':
     mtcnn.eval()
     faces_dataframe = preprocess_df(df=df, mtcnn=mtcnn, path=path,
                                     outpath=config['out_path'],
-                                    n_seconds=args.seconds, debug=args.debug)
+                                    target_n_frames=config['n_frames'],
+                                    frame_rate=config['frame_rate'],
+                                    mini_batch=config['mini_batch'],
+                                    debug=args.debug)
     faces_dataframe.to_csv('{}/faces_metadata.csv'.format(config['out_path']))

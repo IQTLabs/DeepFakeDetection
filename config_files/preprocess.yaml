@@ -1,3 +1,6 @@
 data_path : deepfake-detection/dfdc_train_all
-out_path :  deepfake-detection/dfdc_train_preprocessed_subset
+out_path :  deepfake-detection/dfdc_test_script
+n_frames : 60
+frame_rate : 10
+mini_batch : 15
 mtcnn : { "image_size" : 224, margin : 50, "min_face_size" : 20, "thresholds" : [0.6, 0.7, 0.7], "factor" : 0.709, "post_process" : True}

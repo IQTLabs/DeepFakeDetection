@@ -65,8 +65,9 @@ def save_checkpoint(model, description, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
 
 
-def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
-                  frame_rate=10, debug=False):
+def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
+                  target_n_frames=60, frame_rate=10, mini_batch=15,
+                  debug=False):
     """ Preprocessing script for deep fake challenge.  Subsamples, videos,
     isolates faces and saves frames.
     Parameters
@@ -79,10 +80,12 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
         Path to directory with DFDC data
     outpath : str
         Destination for preprocessed frames
-    n_seconds : int 
-        Number fo seconds to load
+    target_n_frames : int
+        Target number of frames to extract
     frame_rate : int
         Number of frames per second to process
+    mini_batch : str
+        Mini batch size for preprocessing steps (protects against memory overflow)
     debug : bool
         Debug switch to test memory leak
     Returns
@@ -91,18 +94,42 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
         Dataframe of preprocessed data
     """
     def split(my_list, n):
+        """ Splits list into lists of length n
+        Paramaters
+        ----------
+        my_list : list
+            List to subdivide
+        n : int
+            Max length of desired sub-lists
+        Returns
+        final : list
+            List of sub-lists of length n
+        """
         final = [my_list[i * n:(i + 1) * n]
                  for i in range((len(my_list) + n - 1) // n)]
         return final
 
-    def process_min_batch(batch=None, batch_start=0):
-        faces = mtcnn(batch)
+    def process_min_batch(batch=None, start_index=0):
+        """ Pre-process and save a mini_batch of frames
+        Parameters
+        ----------
+        batch : list(torch.tensor)
+            List with frames to preprocess
+        start_index : int
+            Number fo previously saved frames in the video
+        Returns
+        -------
+        end_index : int
+            Number of saved frames at end of this mini-batch
+        """
+        with torch.no_grad():
+            faces = mtcnn(batch)
         saved_frames = 0
         for ii, face in enumerate(faces):
             if face is None:
                 continue
             imface = to_pil(face/2 + 0.5)
-            imface.save('{}/frame_{}.jpeg'.format(dest, ii+n_frames))
+            imface.save('{}/frame_{}.jpeg'.format(dest, ii+start_index))
             del imface
             saved_frames += 1
         del faces
@@ -119,25 +146,25 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None, n_seconds=10,
         dest = '{}/{}/{}/'.format(outpath, entry['split'], entry['File'])
         Path(dest).mkdir(parents=True, exist_ok=True)
         try:
-            videodata = skvideo.io.vread(filename, num_frames=(n_seconds+1)*30)
-        except:
             videodata = skvideo.io.vread(filename)
-        f, h, w, c = videodata.shape
-        # Temporary fix for large files, need to build propoer solution
-        if h*w > (1080*1920):
+        except:
+            this_entry = {'split': entry['split'], 'File': entry['File'],
+                          'label': entry['label'], 'frames': 0}
+            faces_dataframe.append(this_entry)
             continue
         frames = [to_pil(x) for x in videodata[0::frame_skip]]
-        frames_batches = split(frames, 30)
+        frames_batches = split(frames, mini_batch)
         n_frames = 0
-        for idx, batch in enumerate(frames_batches):
-            if n_frames > 30:
+        for batch in frames_batches:
+            if n_frames >= target_n_frames:
                 break
-            n_frames += process_min_batch(batch, 30*idx)
+            n_frames += process_min_batch(batch, n_frames)
 
         this_entry = {'split': entry['split'], 'File': entry['File'],
                       'label': entry['label'], 'frames': n_frames}
         faces_dataframe.append(this_entry)
         del frames, videodata, entry, this_entry
+        #
         if debug:
             for obj in gc.get_objects():
                 try:
