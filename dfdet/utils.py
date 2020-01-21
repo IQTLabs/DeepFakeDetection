@@ -131,7 +131,7 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
             if face is None:
                 continue
             imface = to_pil(face/2 + 0.5)
-            imface.save('{}/frame_{}.jpeg'.format(dest, ii+start_index))
+            imface.save('{}/frame_{}.png'.format(dest, ii+start_index))
             del imface
             saved_frames += 1
         del faces
@@ -144,30 +144,35 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
     for idx in range(len(df)):
         pbar.update(1)
         entry = df.iloc[idx]
-        filename = '{}/{}/{}'.format(path, entry['split'], entry['File'])
-        dest = '{}/{}/{}/'.format(outpath, entry['split'], entry['File'])
-        Path(dest).mkdir(parents=True, exist_ok=True)
         try:
-            videodata = skvideo.io.vread(filename, (n_seconds)*30)
-        except RuntimeError:
-            videodata = skvideo.io.vread(filename)
+            filename = '{}/{}/{}'.format(path, entry['split'], entry['File'])
+            dest = '{}/{}/{}/'.format(outpath, entry['split'], entry['File'])
+            Path(dest).mkdir(parents=True, exist_ok=True)
+            try:
+                videodata = skvideo.io.vread(filename, (n_seconds)*30)
+            except RuntimeError:
+                videodata = skvideo.io.vread(filename)
+            except:
+                this_entry = {'split': entry['split'], 'File': entry['File'],
+                              'label': entry['label'], 'frames': 0}
+                faces_dataframe.append(this_entry)
+                continue
+            frames = [to_pil(x) for x in videodata[0::frame_skip]]
+            frames_batches = split(frames, mini_batch)
+            n_frames = 0
+            for batch in frames_batches:
+                if n_frames >= target_n_frames:
+                    break
+                n_frames += process_min_batch(batch, n_frames)
+
+            this_entry = {'split': entry['split'], 'File': entry['File'],
+                          'label': entry['label'], 'frames': n_frames}
+            del frames, videodata, this_entry
         except:
             this_entry = {'split': entry['split'], 'File': entry['File'],
                           'label': entry['label'], 'frames': 0}
-            faces_dataframe.append(this_entry)
-            continue
-        frames = [to_pil(x) for x in videodata[0::frame_skip]]
-        frames_batches = split(frames, mini_batch)
-        n_frames = 0
-        for batch in frames_batches:
-            if n_frames >= target_n_frames:
-                break
-            n_frames += process_min_batch(batch, n_frames)
-
-        this_entry = {'split': entry['split'], 'File': entry['File'],
-                      'label': entry['label'], 'frames': n_frames}
         faces_dataframe.append(this_entry)
-        del frames, videodata, entry, this_entry
+        del entry
         #
         if debug:
             for obj in gc.get_objects():
