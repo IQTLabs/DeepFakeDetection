@@ -144,6 +144,8 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
     for idx in range(len(df)):
         pbar.update(1)
         entry = df.iloc[idx]
+        this_entry = {'split': entry['split'], 'File': entry['File'],
+                      'label': entry['label'], 'frames': 0}
         try:
             filename = '{}/{}/{}'.format(path, entry['split'], entry['File'])
             dest = '{}/{}/{}/'.format(outpath, entry['split'], entry['File'])
@@ -153,9 +155,6 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
             except RuntimeError:
                 videodata = skvideo.io.vread(filename)
             except:
-                this_entry = {'split': entry['split'], 'File': entry['File'],
-                              'label': entry['label'], 'frames': 0}
-                faces_dataframe.append(this_entry)
                 continue
             frames = [to_pil(x) for x in videodata[0::frame_skip]]
             frames_batches = split(frames, mini_batch)
@@ -165,14 +164,12 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
                     break
                 n_frames += process_min_batch(batch, n_frames)
 
-            this_entry = {'split': entry['split'], 'File': entry['File'],
-                          'label': entry['label'], 'frames': n_frames}
-            del frames, videodata, this_entry
+            this_entry['frames'] = n_frames
+            del frames, videodata
         except:
-            this_entry = {'split': entry['split'], 'File': entry['File'],
-                          'label': entry['label'], 'frames': 0}
+            pass
         faces_dataframe.append(this_entry)
-        del entry
+        del entry, this_entry
         #
         if debug:
             for obj in gc.get_objects():
