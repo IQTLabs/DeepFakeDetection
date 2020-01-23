@@ -69,7 +69,7 @@ class DFDC_Dataset(Dataset):
         frames = []
         nframe = 0
         while len(frames) < self.frames:
-            f = '{}/frame_{}.jpeg'.format(dest, nframe)
+            f = '{}/frame_{}.png'.format(dest, nframe)
             if os.path.isfile(f):
                 frames.append(self.transform(Image.open(f)))
             nframe += 1
