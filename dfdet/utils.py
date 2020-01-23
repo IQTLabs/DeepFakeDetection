@@ -4,6 +4,8 @@ from tqdm import tqdm
 import skvideo
 import skvideo.io
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import torch
 import torch.optim as optim
@@ -12,6 +14,17 @@ from torchvision import transforms
 
 
 __all__ = ['CreateOptim', 'save_checkpoint', 'preprocess_df']
+
+
+def plot_losses(train=[], test=[], path=''):
+    epochs = [x for x in range(len(train))]
+    fig = plt.figure(figsize=(5, 5))
+    sns.lineplot(x=epochs, y=train, label='Train')
+    sns.lineplot(x=epochs, y=test, label='Test')
+    plt.legend(loc='upper right')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.savefig('{}/Loss.jpeg'.format(path))
 
 
 def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), factor=0.2,
