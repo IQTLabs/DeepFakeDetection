@@ -22,6 +22,7 @@ parser.add_argument('--verbose', dest='verbose', default=False,
 
 
 def train_test_split(df, fraction=0.8, random_state=200):
+    df = df[df['frames'] >= 30]
     train = pd.concat([df[df['label'] == 1].sample(frac=fraction,
                                                    random_state=random_state),
                        df[df['label'] == 0].sample(frac=fraction,
@@ -67,8 +68,3 @@ if __name__ == '__main__':
               optim=optim_, scheduler=sched_, criterion=nn.BCELoss(),
               losses=losses, averages=averages, n_epochs=config['n_epochs'],
               device='cuda:{}'.format(args.gpu), verbose=args.verbose)
-    save_checkpoint(
-        model=model,
-        description='{}. Final loss: {}'.format(
-            config['description'], averages[-1]),
-        filename=config['save_name'])
