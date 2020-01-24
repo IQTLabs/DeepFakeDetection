@@ -41,8 +41,8 @@ def plot_losses(train=[], test=[], path=''):
     plt.savefig('{}/Loss.jpeg'.format(path))
 
 
-def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), factor=0.2,
-                patience=5, threshold=1e-03,  eps=1e-08):
+def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), weight_decay=0,
+                factor=0.2, patience=5, threshold=1e-03,  eps=1e-08):
     """ Creates optimizer and associated learning rate scheduler for a model
     Paramaters
     ----------
@@ -52,6 +52,8 @@ def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), factor=0.2,
         Learning rate for optimizer
     betas : 2-tuple(floats)
         Betas for optimizer
+    weight_decay : float
+        Weight decay for optimizer regularization
     factor : float
         Factor by which to reduce learning rate on Plateau
     patience : int
@@ -63,7 +65,8 @@ def CreateOptim(parameters, lr=0.001, betas=(0.5, 0.999), factor=0.2,
     scheduler : ReduceLROnPlateau
         scheduler for optimizer
     """
-    optimizer = optim.Adam(parameters, lr=lr, betas=(0.5, 0.999))
+    optimizer = optim.Adam(parameters, lr=lr, betas=(
+        0.5, 0.999), weight_decay=weight_decay)
     scheduler = ReduceLROnPlateau(
         optimizer, mode='min', factor=0.2, patience=patience,
         threshold=threshold, eps=eps, verbose=True)

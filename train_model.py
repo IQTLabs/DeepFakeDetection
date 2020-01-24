@@ -67,7 +67,8 @@ if __name__ == '__main__':
         chpt_file = torch.load(args.chpt)
         model.load_state_dict(chpt_file['model'])
 
-    optim_, sched_ = CreateOptim(model.parameters(), lr=float(config['lr']))
+    optim_, sched_ = CreateOptim(model.parameters(), lr=float(config['lr']),
+                                 weight_decay=float(config['weight_decay']))
 
     losses = []
     averages = []
