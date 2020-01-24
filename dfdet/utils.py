@@ -6,6 +6,9 @@ import skvideo.io
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
+from moviepy.editor import *
+
 
 import torch
 import torch.optim as optim
@@ -13,10 +16,21 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision import transforms
 
 
-__all__ = ['CreateOptim', 'save_checkpoint', 'preprocess_df']
+__all__ = ['CreateOptim', 'save_checkpoint',
+           'preprocess_df', 'preporcess_df_audio']
 
 
 def plot_losses(train=[], test=[], path=''):
+    """ Plotting function for training/val losses
+    Parameters
+    ----------
+    train : list
+        Training losses over training
+    test : list
+        Test losses over training
+    path : str
+        Path for output plot
+    """
     epochs = [x for x in range(len(train))]
     fig = plt.figure(figsize=(5, 5))
     sns.lineplot(x=epochs, y=train, label='Train')
@@ -193,3 +207,40 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
                     pass
     pbar.close()
     return pd.DataFrame(faces_dataframe)
+
+
+def preporcess_df_audio(df=None, path=None, outpath=None, fps=16000):
+    """ Preprocessing to extact audio from videos
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Metadata for files to pre-process
+    path : str
+        Path to source data
+    outpath : str
+        Path for output prpeorcessed data
+    fps : 
+        Framerate for data loading/saving
+    Returns
+    audio_dataframe : pd.Dataframe
+        Extracted audio meta data
+    """
+    audio_dataframe = []
+    pbar = tqdm(total=len(df))
+    for idx in range(len(df)):
+        pbar.update(1)
+        entry = df.iloc[idx]
+        this_entry = {'split': entry['split'], 'File': entry['File'],
+                      'label': entry['label'], 'wlen': 0}
+        try:
+            filename = '{}/{}/{}'.format(path, entry['split'], entry['File'])
+            dest = '{}/{}'.format(outpath, entry['split'])
+            Path('{}'.format(dest)).mkdir(parents=True, exist_ok=True)
+            audio = AudioFileClip(filename, fps=16000)
+            audio_array = audio.to_soundarray()
+            this_entry['wlen'] = audio_array.shape[0]
+            np.save(file='{}/{}'.format(dest, entry['File']), arr=audio_array)
+        except:
+            pass
+        audio_dataframe.append(this_entry)
+    return pd.DataFrame(audio_dataframe)
