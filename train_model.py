@@ -19,6 +19,8 @@ parser.add_argument('--config', dest='config',
                     help='Config file with paths and MTCNN set-up')
 parser.add_argument('--verbose', dest='verbose', default=False,
                     type=bool, help='Verbose switch')
+parser.add_argument('--load', dest='chpt', default=None, type=str,
+                    help='Checkpoint to resume training')
 
 
 def train_test_split(df, fraction=0.8, random_state=200):
@@ -59,6 +61,11 @@ if __name__ == '__main__':
     model = ConvLSTM(
         num_classes=1, attention=config['attention'],
         encoder=config['encoder'])
+
+    if args.chpt is not None:
+        print('Loading file: {}'.format(args.chpt))
+        chpt_file = torch.load(args.chpt)
+        model.load_state_dict(chpt_file['model'])
 
     optim_, sched_ = CreateOptim(model.parameters(), lr=float(config['lr']))
 
