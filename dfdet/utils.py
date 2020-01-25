@@ -17,7 +17,7 @@ from torchvision import transforms
 
 
 __all__ = ['CreateOptim', 'save_checkpoint',
-           'preprocess_df', 'preporcess_df_audio']
+           'preprocess_df', 'preprocess_df_audio']
 
 
 def plot_losses(train=[], test=[], path=''):
@@ -212,7 +212,7 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
     return pd.DataFrame(faces_dataframe)
 
 
-def preporcess_df_audio(df=None, path=None, outpath=None, fps=16000):
+def preprocess_df_audio(df=None, path=None, outpath=None, fps=16000):
     """ Preprocessing to extact audio from videos
     Parameters
     ----------
