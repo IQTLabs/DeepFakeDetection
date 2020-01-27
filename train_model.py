@@ -40,11 +40,19 @@ if __name__ == '__main__':
     df = pd.read_csv('{}/faces_metadata.csv'.format(config['data_path']))
     train, test = train_test_split(df, config['training_fraction'])
     #
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
-    ])
+    if config['encoder'] == 'IR':
+        transform = transforms.Compose([
+            transforms.Resize((112, 112)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                                 std=[0.5, 0.5, 0.5])
+        ])
+    else:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+        ])
 
     trainset = DFDC_Dataset(
         df=train, transform=transform, path=config['data_path'])
@@ -59,8 +67,8 @@ if __name__ == '__main__':
         num_workers=16)
 
     model = ConvLSTM(
-        num_classes=1, attention=config['attention'],
-        encoder=config['encoder'])
+        num_classes=1, lstm_layers=config['lstm_layers'],
+        attention=config['attention'], encoder=config['encoder'])
 
     if args.chpt is not None:
         print('Loading file: {}'.format(args.chpt))

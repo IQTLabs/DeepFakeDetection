@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+from .model_irse import IR_50
+
 __all__ = ['ConvLSTM']
 
 
@@ -37,6 +39,24 @@ class ResNetEncoder(nn.Module):
         with torch.no_grad():
             x = self.features(x)
         x = x.view(x.shape[0], -1)
+        return self.fc(x)
+
+
+class IREncoder(nn.Module):
+    def __init__(self, latent_dim):
+        super(IREncoder, self).__init__()
+        self.features = IR_50(input_size=(112, 122))
+        path = '/home/mlomnitz/Documents/DFDC/DeepFakeDetection/dfdet/face_evolve/backbone_ir50_ms1m_epoch120.pth'
+        self.features.load_state_dict(
+            torch.load(path, map_location=lambda storage, loc: storage))
+        self.fc = nn.Sequential(
+            nn.ReLU(inplace=True),
+            nn.Linear(512, latent_dim)
+        )
+
+    def forward(self, x):
+        with torch.no_grad():
+            x = self.features(x)
         return self.fc(x)
 
 
@@ -84,12 +104,16 @@ class ConvLSTM(nn.Module):
         -------
         """
         super(ConvLSTM, self).__init__()
-        implemented_encoders = ['VGG', 'ResNet']
+        implemented_encoders = ['VGG', 'ResNet', 'IR']
         assert encoder in implemented_encoders, 'Selected encoder is missing'
+        print('Building {} model'.format(encoder))
         if encoder == 'VGG':
             self.encoder = Encoder(latent_dim)
         if encoder == 'ResNet':
             self.encoder = ResNetEncoder(latent_dim)
+        if encoder == 'IR':
+            self.encoder = IREncoder(latent_dim)
+
         self.lstm = LSTM(latent_dim, lstm_layers, hidden_dim, bidirectional)
         self.output_layers = nn.Sequential(
             nn.Linear(
