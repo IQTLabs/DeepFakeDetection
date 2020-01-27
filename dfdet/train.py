@@ -83,8 +83,8 @@ def test_dfd(dataloader, model, criterion, device):
         with torch.no_grad():
             model.lstm.reset_hidden_state()
             predictions = model(frames)
-            correct = (torch.round(predictions).detach()
-                       == lbls).sum().cpu().numpy()
+            correct += (torch.round(predictions).detach()
+                        == lbls).sum().cpu().numpy()
         total += frames.shape[0]
         loss += (lbls.shape[0]) * \
             (criterion(predictions, lbls).detach().cpu().item())
