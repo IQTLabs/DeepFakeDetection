@@ -12,6 +12,16 @@ __all__ = ['CreateSincNet', 'sample_settings', 'save_sincnet']
 
 
 def str_to_bool(s):
+    """  String to bool used to read config file
+    Parameters
+    ----------
+    s : str
+        String to convert
+    Returns
+    -------
+    s : bool
+        Boolean value of input string
+    """
     if s == 'True':
         return True
     elif s == 'False':
@@ -21,12 +31,39 @@ def str_to_bool(s):
 
 
 def sample_settings(options):
+    """ Load sample settings from the options
+    Parameters
+    ----------
+    options : dict
+        Dictionary with config settings
+    Returns
+    -------
+    wlen : int
+        Window length
+    wshift : int
+        Window start shift
+    """
     wlen = int(options.fs*options.cw_len/1000.00)
     wshift = int(options.fs*options.cw_shift/1000.00)
     return wlen, wshift
 
 
 def CreateSincNet(options):
+    """ Create SincNet model from loaded configuration.  Predictions from
+    model are produced by following pred = DNN1_net(DNN1_net(CNN_net(x)))
+    Parameters
+    ----------
+    options : dict
+        Dictionary with configuration loaded from file
+    Returns
+    -------
+    CNN_net : nn.Module
+        CNN block for SincNet
+    DNN1_net : nn.Module
+        First multilayer perceptron for feature (d-vector) extraction
+    DNN2_net : nn.Module
+        Second MLP for classification block
+    """
     # [windowing]
     fs = int(options.fs)
     cw_len = int(options.cw_len)
