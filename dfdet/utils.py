@@ -155,17 +155,20 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
             Number of saved frames at end of this mini-batch
         """
         with torch.no_grad():
-            faces = mtcnn(batch)
+            faces, probs = mtcnn(batch, return_prob=True)
         saved_frames = 0
+        faces_probs = []
         for ii, face in enumerate(faces):
-            if face is None:
+            if face is None or probs[ii] < 0.95:
                 continue
+            faces_probs.append(probs[ii])
             imface = to_pil(face/2 + 0.5)
-            imface.save('{}/frame_{}.png'.format(dest, ii+start_index))
+            imface.save('{}/frame_{}.png'.format(dest,
+                                                 saved_frames+start_index))
             del imface
             saved_frames += 1
         del faces
-        return saved_frames
+        return saved_frames, faces_probs
 
     frame_skip = 30//frame_rate
     to_pil = transforms.ToPILImage()
@@ -175,7 +178,8 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
         pbar.update(1)
         entry = df.iloc[idx]
         this_entry = {'split': entry['split'], 'File': entry['File'],
-                      'label': entry['label'], 'frames': 0}
+                      'label': entry['label'], 'frames': 0,
+                      'probabilites': []}
         try:
             filename = '{}/{}/{}'.format(path, entry['split'], entry['File'])
             dest = '{}/{}/{}/'.format(outpath, entry['split'], entry['File'])
@@ -189,12 +193,16 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
             frames = [to_pil(x) for x in videodata[0::frame_skip]]
             frames_batches = split(frames, mini_batch)
             n_frames = 0
+            probabilities = []
             for batch in frames_batches:
                 if n_frames >= target_n_frames:
                     break
-                n_frames += process_min_batch(batch, n_frames)
+                t_frames, t_probs = process_min_batch(batch, n_frames)
+                n_frames += t_frames
+                probabilities += t_probs
 
             this_entry['frames'] = n_frames
+            this_entry['probabilities'] = probabilities
             del frames, videodata
         except:
             pass
