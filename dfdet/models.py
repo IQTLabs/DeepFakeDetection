@@ -6,7 +6,11 @@ import torchvision
 
 from .model_irse import IR_50
 
-__all__ = ['ConvLSTM']
+__all__ = ['ConvLSTM', 't_sigmoid']
+
+
+def t_sigmoid(x, t=1.):
+    return 1./(1+torch.exp(-x/t))
 
 
 class Encoder(nn.Module):
@@ -81,7 +85,7 @@ class ConvLSTM(nn.Module):
 
     def __init__(
         self, num_classes, latent_dim=512, lstm_layers=1, hidden_dim=1024,
-            bidirectional=True, attention=True, encoder='VGG'
+            bidirectional=True, attention=True, encoder='VGG', calibrating=True,
     ):
         """ Inintialization
         Parameters
@@ -122,11 +126,13 @@ class ConvLSTM(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim, num_classes),
             # nn.Softmax(dim=-1),
-            nn.Sigmoid()
+            # nn.Sigmoid()
         )
         self.attention = attention
         self.attention_layer = nn.Linear(
             2 * hidden_dim if bidirectional else hidden_dim, 1)
+        self.sigmoid = nn.Sigmoid()
+        self.calibrating = calibrating
 
     def forward(self, x):
         """ Forward pass
@@ -151,4 +157,6 @@ class ConvLSTM(nn.Module):
         else:
             x = x[:, -1]
         x = self.output_layers(x)
+        if self.calibrating is False:
+            x = self.sigmoid(x)
         return x.view(x.shape[0])
