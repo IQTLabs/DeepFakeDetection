@@ -93,7 +93,7 @@ def test_dfd(dataloader, model, criterion, device):
 
 def train_dfd(model=None, dataloader=None, testloader=None, optim=None,
               scheduler=None, criterion=nn.CrossEntropyLoss(), losses=[],
-              averages=[], n_epochs=0, device='cpu', verbose=False):
+              averages=[], n_epochs=0, e_saves=1, device='cpu', verbose=False):
     """ Training routing for deep fake detector
     Parameters
     ----------
@@ -154,7 +154,7 @@ def train_dfd(model=None, dataloader=None, testloader=None, optim=None,
         acc, v_loss = test_dfd(dataloader=testloader, model=model,
                                criterion=criterion, device=device)
         test_losses.append(v_loss)
-        if (epoch+1) % 5 == 0:
+        if (epoch+1) % e_saves == 0:
             save_checkpoint(model, 'Epoch {} Train:{} Test:{} '.format(epoch, meter.avg, v_loss),
                             '{}/model_epoch_{}.pth.tar'.format(chpt_dest, epoch+1))
         if v_loss < best_loss:
