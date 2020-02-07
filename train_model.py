@@ -33,12 +33,30 @@ def train_test_split(df, fraction=0.8, random_state=200):
     return train.reindex(), test.reindex()
 
 
+def paired_split(df, fraction=0.8, random_state=200):
+    df = df[df['frames'] >= 30]
+    all_df = pd.read_csv('../training_metadata.json')
+    df.loc[df['label'] == 'REAL', 'label'] = 0
+    df.loc[df['label'] == 'FAKE', 'label'] = 1
+    test_fake = df[df['label'] == 1].sample(frac=1.0-fraction,
+                                            random_state=random_state)
+    originals = all_df.loc[all_df.File.isin(
+        list(test_fake['File'])) == True, 'original']
+    test_real = df[df.File.isin(list(originals)) == True]
+    test = pd.concat([test_real, test_fake])
+    train = df.drop(test.index)
+    return train.reindex(), test.reindex()
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config) as f:
         config = yaml.load(f)
-    df = pd.read_csv('{}/faces_metadata.csv'.format(config['data_path']))
-    train, test = train_test_split(df, config['training_fraction'])
+    df = pd.read_csv('{}/faces_fixed_metadata.csv'.format(config['data_path']))
+    if bool(config['paired_split']):
+        train, test = paired_split(df, config['training_fraction'])
+    else:
+        train, test = train_test_split(df, config['training_fraction'])
     #
     if config['encoder'] == 'IR':
         transform = transforms.Compose([
@@ -68,7 +86,8 @@ if __name__ == '__main__':
 
     model = ConvLSTM(
         num_classes=1, lstm_layers=config['lstm_layers'],
-        attention=config['attention'], encoder=config['encoder'])
+        attention=config['attention'], encoder=config['encoder'],
+        calibrating=False, fine_tune=config['fine_tune'])
 
     if args.chpt is not None:
         print('Loading file: {}'.format(args.chpt))
@@ -83,4 +102,5 @@ if __name__ == '__main__':
     train_dfd(model=model, dataloader=trainloader, testloader=testloader,
               optim=optim_, scheduler=sched_, criterion=nn.BCELoss(),
               losses=losses, averages=averages, n_epochs=config['n_epochs'],
-              device='cuda:{}'.format(args.gpu), verbose=args.verbose)
+              e_saves=config['e_saves'], device='cuda:{}'.format(args.gpu),
+              verbose=args.verbose)
