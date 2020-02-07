@@ -33,8 +33,8 @@ def train_test_split(df, fraction=0.8, random_state=200):
     return train.reindex(), test.reindex()
 
 
-def paired_split(df, fraction=0.8, random_state=200):
-    df = df[df['frames'] >= 30]
+def paired_split(df, fraction=0.8, random_state=200, nframes=30):
+    df = df[df['frames'] >= nframes]
     all_df = pd.read_csv('../training_metadata.json')
     df.loc[df['label'] == 'REAL', 'label'] = 0
     df.loc[df['label'] == 'FAKE', 'label'] = 1
@@ -54,7 +54,8 @@ if __name__ == '__main__':
         config = yaml.load(f)
     df = pd.read_csv('{}/faces_fixed_metadata.csv'.format(config['data_path']))
     if bool(config['paired_split']):
-        train, test = paired_split(df, config['training_fraction'])
+        train, test = paired_split(df, config['training_fraction'],
+                                   config['n_frames'])
     else:
         train, test = train_test_split(df, config['training_fraction'])
     #
@@ -73,13 +74,15 @@ if __name__ == '__main__':
         ])
 
     trainset = DFDC_Dataset(
-        df=train, transform=transform, path=config['data_path'])
+        df=train, transform=transform, path=config['data_path'],
+        frames=config['n_frames'])
     trainloader = DataLoader(
         trainset, batch_size=config['batch_size'], shuffle=True,
         num_workers=16)
     #
     testset = DFDC_Dataset(
-        df=test, transform=transform, path=config['data_path'])
+        df=test, transform=transform, path=config['data_path'],
+        frames=config['n_frames'])
     testloader = DataLoader(
         testset, batch_size=config['batch_size'], shuffle=False,
         num_workers=16)

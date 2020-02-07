@@ -71,11 +71,12 @@ class DFDC_Dataset(Dataset):
         path, dirs, files = next(os.walk(dest))
         frames = []
         nframe = 0
+        minimum = 90-self.frames+1
         if self.stochastic:
-            if entry['frames'] == 30:
-                start = 61
+            if entry['frames'] == self.frames:
+                start = minimum
             else:
-                start = np.random.randint(91-entry['frames'], 61)
+                start = np.random.randint(91-entry['frames'], minimum)
 
         while len(frames) < self.frames:
             f = '{}/frame_{}.png'.format(dest, start+nframe)
