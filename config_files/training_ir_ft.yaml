@@ -1,0 +1,15 @@
+batch_size: 4
+lr: 2e-7
+weight_decay: 1e-3
+latent_embedding: 512
+lstm_layers: 1
+training_fraction: 0.8
+paired_split: True
+n_epochs: 30
+e_saves: 1
+attention: True
+fine_tune: True
+encoder: IR
+data_path: ./deepfake-detection/dfdc_train_preprocessed_large
+save_name: ./checkpoints/resnet152_attn_20k.pth.tar
+description: 20k videos, 3 fps, 3 seconds
