@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-__all__ = ['DFDC_Dataset']
+__all__ = ['DFDC_Dataset', 'DFDC_MD_Dataset']
 
 
 def fix_labels(df=None):
@@ -18,7 +18,8 @@ class DFDC_Dataset(Dataset):
     """ DeepFake detection dataset
     """
 
-    def __init__(self, df=None, transform=None, path='', frames=30):
+    def __init__(self, df=None, transform=None, path='', frames=30,
+                 stochastic=True):
         """ Dataset initialization
         Parameters
         ----------
@@ -35,6 +36,7 @@ class DFDC_Dataset(Dataset):
         self.frames = frames
         self.df = df[df['frames'] >= frames]
         self.path = path
+        self.stochastic = stochastic
         if transform is None:
             self.transform = transforms.ToTensor()
         else:
@@ -69,8 +71,14 @@ class DFDC_Dataset(Dataset):
         path, dirs, files = next(os.walk(dest))
         frames = []
         nframe = 0
+        if self.stochastic:
+            if entry['frames'] == 30:
+                start = 61
+            else:
+                start = np.random.randint(91-entry['frames'], 61)
+
         while len(frames) < self.frames:
-            f = '{}/frame_{}.png'.format(dest, nframe)
+            f = '{}/frame_{}.png'.format(dest, start+nframe)
             if os.path.isfile(f):
                 frames.append(self.transform(Image.open(f)))
             nframe += 1
