@@ -97,7 +97,7 @@ def save_checkpoint(model, description, filename='checkpoint.pth.tar'):
 
 def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
                   target_n_frames=60, frame_rate=10, mini_batch=15,
-                  n_seconds=5, debug=False):
+                  n_seconds=5, start_at_end=True, debug=False):
     """ Preprocessing script for deep fake challenge.  Subsamples, videos,
     isolates faces and saves frames.
     Parameters
@@ -140,6 +140,37 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
         final = [my_list[i * n:(i + 1) * n]
                  for i in range((len(my_list) + n - 1) // n)]
         return final
+
+    def process_min_batch_reverse(batch=None, start_index=0):
+        """ Pre-process and save a mini_batch of frames
+        Parameters
+        ----------
+        batch : list(torch.tensor)
+            List with frames to preprocess
+        start_index : int
+            Number fo previously saved frames in the video
+        Returns
+        -------
+        end_index : int
+            Number of saved frames at end of this mini-batch
+        """
+        with torch.no_grad():
+            faces, probs = mtcnn(batch, return_prob=True)
+        saved_frames = 0
+        faces_probs = []
+        for ii, face in enumerate(faces):
+            if face is None or probs[ii] < 0.95:
+                continue
+            if start_index-saved_frames < 0:
+                break
+            faces_probs.append(probs[ii])
+            imface = to_pil(face/2 + 0.5)
+            imface.save('{}/frame_{}.png'.format(dest,
+                                                 start_index-saved_frames))
+            del imface
+            saved_frames += 1
+        del faces
+        return saved_frames, faces_probs
 
     def process_min_batch(batch=None, start_index=0):
         """ Pre-process and save a mini_batch of frames
@@ -190,16 +221,31 @@ def preprocess_df(df=None, mtcnn=None, path=None, outpath=None,
                 videodata = skvideo.io.vread(filename)
             except:
                 continue
-            frames = [to_pil(x) for x in videodata[0::frame_skip]]
-            frames_batches = split(frames, mini_batch)
-            n_frames = 0
+            if start_at_end:
+                frames = [to_pil(x) for x in videodata[::-frame_skip]]
+                frames_batches = split(frames, mini_batch)
+            else:
+                frames = [to_pil(x) for x in videodata[0::frame_skip]]
+                frames_batches = split(frames, mini_batch)
             probabilities = []
-            for batch in frames_batches:
-                if n_frames >= target_n_frames:
-                    break
-                t_frames, t_probs = process_min_batch(batch, n_frames)
-                n_frames += t_frames
-                probabilities += t_probs
+            if start_at_end:
+                n_frames = target_n_frames
+                for batch in frames_batches:
+                    if n_frames < 0:
+                        break
+                    t_frames, t_probs = process_min_batch_reverse(
+                        batch, n_frames)
+                    n_frames -= t_frames
+                    probabilities += t_probs
+                n_frames = target_n_frames
+            else:
+                n_frames = 0
+                for batch in frames_batches:
+                    if n_frames >= target_n_frames:
+                        break
+                    t_frames, t_probs = process_min_batch(batch, n_frames)
+                    n_frames += t_frames
+                    probabilities += t_probs
 
             this_entry['frames'] = n_frames
             this_entry['probabilities'] = probabilities
