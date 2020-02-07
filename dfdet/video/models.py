@@ -47,7 +47,7 @@ class ResNetEncoder(nn.Module):
 
 
 class IREncoder(nn.Module):
-    def __init__(self, latent_dim):
+    def __init__(self, latent_dim, fine_tune=False):
         super(IREncoder, self).__init__()
         self.features = IR_50(input_size=(112, 122))
         path = '/home/mlomnitz/Documents/DFDC/DeepFakeDetection/dfdet/face_evolve/backbone_ir50_ms1m_epoch120.pth'
@@ -57,10 +57,14 @@ class IREncoder(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(512, latent_dim)
         )
+        self.fine_tune = fine_tune
 
     def forward(self, x):
-        with torch.no_grad():
+        if self.fine_tune:
             x = self.features(x)
+        else:
+            with torch.no_grad():
+                x = self.features(x)
         return self.fc(x)
 
 
@@ -85,7 +89,8 @@ class ConvLSTM(nn.Module):
 
     def __init__(
         self, num_classes, latent_dim=512, lstm_layers=1, hidden_dim=1024,
-            bidirectional=True, attention=True, encoder='VGG', calibrating=True,
+            bidirectional=True, attention=True, encoder='VGG',
+            calibrating=True, fine_tune=False
     ):
         """ Inintialization
         Parameters
@@ -116,7 +121,7 @@ class ConvLSTM(nn.Module):
         if encoder == 'ResNet':
             self.encoder = ResNetEncoder(latent_dim)
         if encoder == 'IR':
-            self.encoder = IREncoder(latent_dim)
+            self.encoder = IREncoder(latent_dim, fine_tune=fine_tune)
 
         self.lstm = LSTM(latent_dim, lstm_layers, hidden_dim, bidirectional)
         self.output_layers = nn.Sequential(
