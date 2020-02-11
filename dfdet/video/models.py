@@ -67,6 +67,9 @@ class IREncoder(nn.Module):
                 x = self.features(x)
         return self.fc(x)
 
+    def set_ft(self, fine_tune=True):
+        self.fine_tune = fine_tune
+
 
 class LSTM(nn.Module):
     def __init__(self, latent_dim, num_layers, hidden_dim, bidirectional):
@@ -165,3 +168,6 @@ class ConvLSTM(nn.Module):
         if self.calibrating is False:
             x = self.sigmoid(x)
         return x.view(x.shape[0])
+
+        def set_ft(self, fine_tune=True):
+            self.encoder.set_ft(fine_tune)
