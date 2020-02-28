@@ -34,8 +34,8 @@ def train_test_split(df, fraction=0.8, random_state=200):
 
 
 def paired_split(df, fraction=0.8, random_state=200, nframes=30):
-    df = df[df['frames'] >= nframes]
-    all_df = pd.read_csv('../training_metadata.json')
+    df = df[df['nframes'] >= nframes]
+    all_df = pd.read_csv('./training_metadata.json')
     df.loc[df['label'] == 'REAL', 'label'] = 0
     df.loc[df['label'] == 'FAKE', 'label'] = 1
     test_fake = df[df['label'] == 1].sample(frac=1.0-fraction,
@@ -52,37 +52,25 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config) as f:
         config = yaml.load(f)
-    df = pd.read_csv('{}/faces_fixed_metadata.csv'.format(config['data_path']))
+    df = pd.read_csv('{}/faces_metadata.csv'.format(config['data_path']))
     if bool(config['paired_split']):
         train, test = paired_split(df, config['training_fraction'],
-                                   config['n_frames'])
+                                   config['frames'])
     else:
         train, test = train_test_split(df, config['training_fraction'])
-    #
-    if config['encoder'] == 'IR':
-        transform = transforms.Compose([
-            transforms.Resize((112, 112)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                                 std=[0.5, 0.5, 0.5])
-        ])
-    else:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-        ])
 
     trainset = DFDC_Dataset(
-        df=train, transform=transform, path=config['data_path'],
-        frames=config['n_frames'])
+        df=train, size=config['size'], mean=config['mean'], std=config['std'],
+        augment=config['augment'], frames=config['frames'],
+        stochastic=config['stochastic'])
     trainloader = DataLoader(
         trainset, batch_size=config['batch_size'], shuffle=True,
         num_workers=16)
     #
     testset = DFDC_Dataset(
-        df=test, transform=transform, path=config['data_path'],
-        frames=config['n_frames'])
+        df=test, size=config['size'], mean=config['mean'], std=config['std'],
+        augment=False, frames=config['frames'],
+        stochastic=config['stochastic'])
     testloader = DataLoader(
         testset, batch_size=config['batch_size'], shuffle=False,
         num_workers=16)
@@ -98,7 +86,8 @@ if __name__ == '__main__':
         model.load_state_dict(chpt_file['model'])
 
     optim_, sched_ = CreateOptim(model.parameters(), lr=float(config['lr']),
-                                 weight_decay=float(config['weight_decay']))
+                                 weight_decay=float(config['weight_decay']),
+                                 threshold=0.0001, factor=0.7)
 
     losses = []
     averages = []
