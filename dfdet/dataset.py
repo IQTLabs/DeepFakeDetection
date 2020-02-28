@@ -5,6 +5,9 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
+import albumentations
+from albumentations.augmentations.transforms import ShiftScaleRotate, HorizontalFlip, Normalize
+from albumentations.augmentations.transforms import RandomBrightnessContrast, MotionBlur, Blur, GaussNoise, JpegCompression
 
 __all__ = ['DFDC_Dataset', 'DFDC_MD_Dataset']
 
@@ -18,7 +21,8 @@ class DFDC_Dataset(Dataset):
     """ DeepFake detection dataset
     """
 
-    def __init__(self, df=None, transform=None, path='', frames=30,
+    def __init__(self, df=None, size=150, mean=[0.485, 0.456, 0.406],
+                 std=[0.229, 0.224, 0.225], augment=True, frames=30,
                  stochastic=True):
         """ Dataset initialization
         Parameters
@@ -34,13 +38,28 @@ class DFDC_Dataset(Dataset):
         """
         assert df is not None, 'Missing dataframe for data'
         self.frames = frames
-        self.df = df[df['frames'] >= frames]
-        self.path = path
+        self.df = df[df['nframes'] >= frames]
         self.stochastic = stochastic
-        if transform is None:
-            self.transform = transforms.ToTensor()
+        addtl_img = {}
+        for idx in range(frames):
+            addtl_img['image{}'.format(idx)] = 'image'
+        if augment:
+            self.transform = albumentations.Compose([
+                ShiftScaleRotate(p=0.3, scale_limit=0.25,
+                                 border_mode=1, rotate_limit=15),
+                HorizontalFlip(p=0.2),
+                RandomBrightnessContrast(
+                    p=0.3, brightness_limit=0.25, contrast_limit=0.5),
+                MotionBlur(p=.2),
+                GaussNoise(p=.2),
+                JpegCompression(p=.2, quality_lower=50),
+                Normalize(mean, std)
+            ], additional_targets=addtl_img)
         else:
-            self.transform = transform
+            self.transform = albumentations.Compose([
+                Normalize(mean, std)
+            ])
+        self.resize = transforms.Resize((size, size))
 
     def __len__(self):
         """ Len of dataset
@@ -67,27 +86,19 @@ class DFDC_Dataset(Dataset):
             Tensor with video lables (1=real, 0=fake)
         """
         entry = self.df.iloc[idx]
-        dest = '{}/{}/{}/'.format(self.path, entry['split'], entry['File'])
-        path, dirs, files = next(os.walk(dest))
-        frames = []
-        nframe = 0
-        minimum = 90-self.frames+1
         if self.stochastic:
-            if entry['frames'] == self.frames:
-                start = minimum
+            start = np.random.randint(0, entry['nframes']-self.frames)
+        to_pass = {}
+        for idx in range(self.frames):
+            f = '{}/frame_{}.png'.format(entry['File'], start+idx)
+            if idx == 0:
+                to_pass['image'] = np.array(self.resize(Image.open(f)))
             else:
-                start = np.random.randint(91-entry['frames'], minimum)
-
-        while len(frames) < self.frames:
-            f = '{}/frame_{}.png'.format(dest, start+nframe)
-            if os.path.isfile(f):
-                frames.append(self.transform(Image.open(f)))
-            nframe += 1
-            if nframe > 1000:
-                print('Something terrible ', dest)
-                break
-
-        return torch.stack(frames), entry['label']
+                to_pass['image{}'.format(idx)] = np.array(
+                    self.resize(Image.open(f)))
+        frames = self.transform(**to_pass)
+        frames = np.stack([x for x in frames.values()])
+        return torch.from_numpy(np.rollaxis(frames, 3, 1)), entry['label']
 
 
 class DFDC_MD_Dataset(Dataset):
