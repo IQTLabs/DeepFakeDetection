@@ -87,7 +87,10 @@ class DFDC_Dataset(Dataset):
         """
         entry = self.df.iloc[idx]
         if self.stochastic:
-            start = np.random.randint(0, entry['nframes']-self.frames)
+            if entry['nframes']-self.frames <= 0:
+                start = 0
+            else:
+                start = np.random.randint(0, entry['nframes']-self.frames)
         to_pass = {}
         for idx in range(self.frames):
             f = '{}/frame_{}.png'.format(entry['File'], start+idx)
@@ -105,8 +108,9 @@ class DFDC_MD_Dataset(Dataset):
     """ DeepFake detection dataset
     """
 
-    def __init__(self, df=None, transform=None, path='', audio_path='',
-                 frames=30, wlen=0):
+    def __init__(self, df=None, size=150, mean=[0.485, 0.456, 0.406],
+                 std=[0.229, 0.224, 0.225], augment=True, frames=30,
+                 wlen=0, stochastic=True):
         """ Dataset initialization
         Parameters
         ----------
@@ -121,14 +125,30 @@ class DFDC_MD_Dataset(Dataset):
         """
         assert df is not None, 'Missing dataframe for data'
         self.frames = frames
-        self.df = df[df['frames'] >= frames]
-        self.path = path
-        self.audio_path = audio_path
+        self.df = df[(df['nframes'] >= frames) & (df['wlen'] > wlen)]
+
         self.wlen = wlen
-        if transform is None:
-            self.transform = transforms.ToTensor()
+        self.stochastic = stochastic
+        addtl_img = {}
+        for idx in range(frames):
+            addtl_img['image{}'.format(idx)] = 'image'
+        if augment:
+            self.transform = albumentations.Compose([
+                ShiftScaleRotate(p=0.3, scale_limit=0.25,
+                                 border_mode=1, rotate_limit=15),
+                HorizontalFlip(p=0.2),
+                RandomBrightnessContrast(
+                    p=0.3, brightness_limit=0.25, contrast_limit=0.5),
+                MotionBlur(p=.2),
+                GaussNoise(p=.2),
+                JpegCompression(p=.2, quality_lower=50),
+                Normalize(mean, std)
+            ], additional_targets=addtl_img)
         else:
-            self.transform = transform
+            self.transform = albumentations.Compose([
+                Normalize(mean, std)
+            ])
+        self.resize = transforms.Resize((size, size))
 
     def __len__(self):
         """ Len of dataset
@@ -155,22 +175,30 @@ class DFDC_MD_Dataset(Dataset):
             Tensor with video lables (1=real, 0=fake)
         """
         entry = self.df.iloc[idx]
-        dest = '{}/{}/{}/'.format(self.path, entry['split'], entry['File'])
-        path, dirs, files = next(os.walk(dest))
-        frames = []
-        nframe = 0
-        while len(frames) < self.frames:
-            f = '{}/frame_{}.png'.format(dest, nframe)
-            if os.path.isfile(f):
-                frames.append(self.transform(Image.open(f)))
-            nframe += 1
-            if nframe > 1000:
-                print('Something terrible ', dest)
-                break
+        if self.stochastic:
+            if entry['nframes']-self.frames <= 0:  # frame start
+                start = 0
+            else:
+                start = np.random.randint(0, entry['nframes']-self.frames)
 
-        audio_dest = '{}/{}/{}.npy'.format(self.audio_path,
-                                           entry['split'], entry['File'])
-        signal = np.load(audio_dest)
-        instance = signal[0:self.wlen, 0]
+            if entry['wlen']-self.wlen <= 0:
+                audio_start = 0
+            else:
+                audio_start = np.random.randint(
+                    0, int(entry['wlen'])-self.wlen)
 
-        return torch.stack(frames), instance, entry['label']
+        to_pass = {}
+        for idx in range(self.frames):
+            f = '{}/frame_{}.png'.format(entry['File'], start+idx)
+            if idx == 0:
+                to_pass['image'] = np.array(self.resize(Image.open(f)))
+            else:
+                to_pass['image{}'.format(idx)] = np.array(
+                    self.resize(Image.open(f)))
+        frames = self.transform(**to_pass)
+        frames = np.stack([x for x in frames.values()])
+
+        signal = np.load(entry['Audio'])
+        instance = signal[audio_start:audio_start+self.wlen, 0]
+
+        return torch.from_numpy(np.rollaxis(frames, 3, 1)), instance, entry['label']
