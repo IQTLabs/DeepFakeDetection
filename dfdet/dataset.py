@@ -9,6 +9,9 @@ import albumentations
 from albumentations.augmentations.transforms import ShiftScaleRotate, HorizontalFlip, Normalize
 from albumentations.augmentations.transforms import RandomBrightnessContrast, MotionBlur, Blur, GaussNoise, JpegCompression
 
+from .fft import *
+
+
 __all__ = ['DFDC_Dataset', 'DFDC_MD_Dataset']
 
 
@@ -108,9 +111,9 @@ class DFDC_MD_Dataset(Dataset):
     """ DeepFake detection dataset
     """
 
-    def __init__(self, df=None, size=150, mean=[0.485, 0.456, 0.406],
-                 std=[0.229, 0.224, 0.225], augment=True, frames=30,
-                 wlen=0, stochastic=True):
+    def __init__(self, df=None, size=150, size_gs=224,
+                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225],
+                 augment=True, frames=15, wlen=0, stochastic=True):
         """ Dataset initialization
         Parameters
         ----------
@@ -144,11 +147,26 @@ class DFDC_MD_Dataset(Dataset):
                 JpegCompression(p=.2, quality_lower=50),
                 Normalize(mean, std)
             ], additional_targets=addtl_img)
+            self.transform_gs = albumentations.Compose([
+                ShiftScaleRotate(p=0.3, scale_limit=0.25,
+                                 border_mode=1, rotate_limit=15),
+                HorizontalFlip(p=0.2),
+                RandomBrightnessContrast(
+                    p=0.3, brightness_limit=0.25, contrast_limit=0.5),
+                MotionBlur(p=.2),
+                GaussNoise(p=.2),
+                JpegCompression(p=.2, quality_lower=50)
+            ], additional_targets=addtl_img)
         else:
             self.transform = albumentations.Compose([
                 Normalize(mean, std)
             ])
+            self.transform_gs = None
+
         self.resize = transforms.Resize((size, size))
+        self.resize_gs = transforms.Compose([
+            transforms.Resize((size_gs, size_gs)),
+            transforms.Grayscale()])
 
     def __len__(self):
         """ Len of dataset
@@ -188,17 +206,28 @@ class DFDC_MD_Dataset(Dataset):
                     0, int(entry['wlen'])-self.wlen)
 
         to_pass = {}
+        to_pass_gs = {}
         for idx in range(self.frames):
             f = '{}/frame_{}.png'.format(entry['File'], start+idx)
             if idx == 0:
-                to_pass['image'] = np.array(self.resize(Image.open(f)))
+                img = Image.open(f)
+                to_pass['image'] = np.array(self.resize(img))
+                to_pass_gs['image'] = np.array(self.resize_gs(img))
             else:
-                to_pass['image{}'.format(idx)] = np.array(
-                    self.resize(Image.open(f)))
+                img = Image.open(f)
+                to_pass['image{}'.format(idx)] = np.array(self.resize(img))
+                to_pass_gs['image{}'.format(idx)] = np.array(
+                    self.resize_gs(img))
         frames = self.transform(**to_pass)
+        if self.transform_gs is not None:
+            frames_gs = self.transform_gs(**to_pass_gs)
+        else:
+            frames_gs = to_pass_gs
+        #
         frames = np.stack([x for x in frames.values()])
+        spectrum = np.stack([getPoweSpectrum(x) for x in frames_gs.values()])
 
         signal = np.load(entry['Audio'])
         instance = signal[audio_start:audio_start+self.wlen, 0]
 
-        return torch.from_numpy(np.rollaxis(frames, 3, 1)), instance, entry['label']
+        return torch.from_numpy(np.rollaxis(frames, 3, 1)), instance, spectrum, entry['label']
