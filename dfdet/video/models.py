@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torchvision
 
 from .model_irse import IR_50
+from .model_xception import GetPretrainedXception, Head
 
 __all__ = ['ConvLSTM', 't_sigmoid']
 
@@ -46,11 +47,31 @@ class ResNetEncoder(nn.Module):
         return self.fc(x)
 
 
+class Xception(nn.Module):
+    def __init__(self, latent_dim=1048, fine_tune=False):
+        super(Xception, self).__init__()
+        model = GetPretrainedXception()
+        self.base = model.base
+        self.h1 = Head(2048, latent_dim)
+        self.fine_tune = fine_tune
+
+    def forward(self, x):
+        if self.fine_tune:
+            x = self.base(x)
+        else:
+            with torch.no_grad():
+                x = self.base(x)
+        return self.h1(x)
+
+    def set_ft(self, fine_tune=True):
+        self.fine_tune = fine_tune
+
+
 class IREncoder(nn.Module):
     def __init__(self, latent_dim, fine_tune=False):
         super(IREncoder, self).__init__()
         self.features = IR_50(input_size=(112, 122))
-        path = '/home/mlomnitz/Documents/DFDC/DeepFakeDetection/dfdet/face_evolve/backbone_ir50_ms1m_epoch120.pth'
+        path = '/home/mlomnitz/Documents/DFDC/DeepFakeDetection/dfdet/video/face_evolve/backbone_ir50_ms1m_epoch120.pth'
         self.features.load_state_dict(
             torch.load(path, map_location=lambda storage, loc: storage))
         self.fc = nn.Sequential(
@@ -116,7 +137,7 @@ class ConvLSTM(nn.Module):
         -------
         """
         super(ConvLSTM, self).__init__()
-        implemented_encoders = ['VGG', 'ResNet', 'IR']
+        implemented_encoders = ['VGG', 'ResNet', 'IR', 'Xception']
         assert encoder in implemented_encoders, 'Selected encoder is missing'
         print('Building {} model'.format(encoder))
         if encoder == 'VGG':
@@ -125,6 +146,8 @@ class ConvLSTM(nn.Module):
             self.encoder = ResNetEncoder(latent_dim)
         if encoder == 'IR':
             self.encoder = IREncoder(latent_dim, fine_tune=fine_tune)
+        if encoder == 'Xception':
+            self.encoder = Xception(latent_dim=latent_dim, fine_tune=fine_tune)
 
         self.lstm = LSTM(latent_dim, lstm_layers, hidden_dim, bidirectional)
         self.output_layers = nn.Sequential(
