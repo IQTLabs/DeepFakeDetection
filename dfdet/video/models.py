@@ -1,12 +1,17 @@
 # Bsed on the work in https://github.com/eriklindernoren/Action-Recognition
+# Python modules
+import os
+# Pytorch modules
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-
+# local files
 from .model_irse import IR_50
 from .model_xception import GetPretrainedXception, Head
 
+
+abspath = os.path.abspath(__file__)
 __all__ = ['ConvLSTM', 't_sigmoid']
 
 
@@ -71,7 +76,8 @@ class IREncoder(nn.Module):
     def __init__(self, latent_dim, fine_tune=False):
         super(IREncoder, self).__init__()
         self.features = IR_50(input_size=(112, 122))
-        path = '/home/mlomnitz/Documents/DFDC/DeepFakeDetection/dfdet/video/face_evolve/backbone_ir50_ms1m_epoch120.pth'
+        path = '{}/../weights/face_evolve/backbone_ir50_ms1m_epoch120.pth'.format(
+            abspath)
         self.features.load_state_dict(
             torch.load(path, map_location=lambda storage, loc: storage))
         self.fc = nn.Sequential(

@@ -1,6 +1,12 @@
+# Python modules
+import os
+# PyTorch modules
 import torch
 import torch.nn as nn
 from pytorchcv.model_provider import get_model
+
+
+abspath = os.path.abspath(__file__)
 
 
 class Head(torch.nn.Module):
@@ -40,7 +46,7 @@ class FCN(torch.nn.Module):
         return self.h1(x)
 
 
-def GetPretrainedXception(path='/home/mlomnitz/Documents/DFDC/DeepFakeDetection_v2/DeepFakeDetection/dfdet/video/xception/best_model.pth.tar'):
+def GetPretrainedXception(path='{}/../weights/xception/best_model.pth.tar'.format(abspath)):
     model = get_model("xception", pretrained=False)
     model = nn.Sequential(*list(model.children())[:-1])
     model[0].final_block.pool = nn.Sequential(nn.AdaptiveAvgPool2d(1))
