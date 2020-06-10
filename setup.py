@@ -10,23 +10,26 @@ from setuptools import setup, find_packages, Command
 NAME = 'dfdet'
 DESCRIPTION = 'TeamWork for DeepFake Detection Challenge',
 MAINTAINER = 'Michael Lomnitz, Zigfried Hampel-Arias, Lucas Tindall'
-MAINTAINER_EMAIL = ''
+MAINTAINER_EMAIL = 'mlomnitz@iqt.org'
 URL = 'https://github.com/mlomnitz/DeepFakeDetection'
 LICENSE = 'MIT'
 
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+
 def read(path, encoding='utf-8'):
     with io.open(path, encoding=encoding) as f:
         content = f.read()
     return content
+
 
 def get_install_requirements(path):
     content = read(path)
     requirements = [req for req in content.split("\n")
                     if req != '' and not req.startswith('#')]
     return requirements
+
 
 # README
 LONG_DESCRIPTION = read(os.path.join(here, 'README.md'))
@@ -39,7 +42,9 @@ with io.open(os.path.join(here, 'dfdet', '__version__.py'), encoding='utf-8') as
     VERSION = about['__version__']
 
 # requirements
-INSTALL_REQUIRES = get_install_requirements(os.path.join(here, 'requirements.txt'))
+INSTALL_REQUIRES = get_install_requirements(
+    os.path.join(here, 'requirements.txt'))
+
 
 class UploadCommand(Command):
     """Support setup.py upload."""
@@ -66,7 +71,8 @@ class UploadCommand(Command):
             pass
 
         self.status('Building Source and Wheel (universal) distribution…')
-        os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
+        os.system(
+            '{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
 
         self.status('Uploading the package to PyPi via Twine…')
         os.system('twine upload dist/*')
@@ -85,13 +91,13 @@ setup(
     license=LICENSE,
     long_description=LONG_DESCRIPTION,
     author=MAINTAINER,
-    #author_email=MAINTAINER_EMAIL,
+    # author_email=MAINTAINER_EMAIL,
     url=URL,
     packages=['dfdet'],
-    install_requires=INSTALL_REQUIRES, #external packages as dependencies
+    install_requires=INSTALL_REQUIRES,  # external packages as dependencies
     setup_requires=['setuptools>=38.6.0'],
     scripts=[
-            ],
+    ],
     # $ setup.py publish support.
     cmdclass={
         'upload': UploadCommand,
