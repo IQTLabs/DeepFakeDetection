@@ -59,4 +59,4 @@ python train.py --help
 
 [MIT License](LICENSE)
 
-Copyright (c) 2020 Michael Lomnitz, Zigfried Hampel-Arias, Lucas Tindall
+Copyright (c) 2020 IQT Labs LLC
