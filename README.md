@@ -1,10 +1,10 @@
 # DeepFakeDetection: Experiments for [DFDC](https://www.kaggle.com/c/deepfake-detection-challenge/)
 
-This repository contains the codebase for the Lab41 submissions to the DFDC. Fig1 illsutrates the overall design for the system submitted to the competion.  Ultimately, the algorithm combined the predictios of three individually trained deepfake detectors that processed audio, video and the spatial power spectrum of indivual frames.  The predictions from each detector was fed through a multilayer perceptron (MLP) and trained to produce the optimum set of predictions.
+This repository contains the codebase for the Lab41 submissions to the DFDC. Fig1 illustrates the overall design for the system submitted to the competition.  Ultimately, the algorithm combined the predictions of three individually trained deepfake detectors that processed audio, video and the spatial power spectrum of individual frames.  The predictions from each detector were fed through a multilayer perceptron (MLP) and trained to produce the optimum set of predictions.
 
 | ![System Design](./images/system_design.jpg) |
 |:--:|
-|Fig1: Schematic illutstration of overall deepfake detection system design|
+|Fig1: Schematic illustration of overall deepfake detection system design|
 
 ## Requirements
 
@@ -49,7 +49,7 @@ python preprocess_audio.py --help
 
 ## Training
 
-We have provded a sample script used to train the ConvLSTM model on video frames.  Hyperparameters for the training are controlled via a yaml file.  For details regarding the training script:
+We have provided a sample script used to train the ConvLSTM model on video frames.  Hyperparameters for the training are controlled via a yaml file.  For details regarding the training script:
 ```
 python train.py --help
 ```
